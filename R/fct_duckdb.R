@@ -1294,13 +1294,16 @@ export_concept_set_to_json <- function(concept_set_id, concepts_data = NULL) {
       createdDate = to_date_only(cs$created_date),
       modifiedBy = if (!is.null(modified_by_name)) modified_by_name else created_by_name,
       modifiedDate = to_date_only(cs$modified_date),
-      createdByTool = "INDICATE Data Dictionary v0.2.0.9002",
+      createdByTool = paste0("INDICATE Data Dictionary (Shiny) v", as.character(utils::packageVersion("indicate"))),
       expression = list(
         items = items
       ),
       tags = tags,
-      reviewStatus = if (!is.null(cs$review_status) && !is.na(cs$review_status) && cs$review_status != "") as.character(cs$review_status) else "draft",
       metadata = list(
+        uniqueId = if (!is.null(cs$unique_id) && !is.na(cs$unique_id)) as.character(cs$unique_id) else as.character(uuid::UUIDgenerate()),
+        organization = list(name = "INDICATE Consortium", url = "https://indicate-eu.org"),
+        reviewStatus = if (!is.null(cs$review_status) && !is.na(cs$review_status) && cs$review_status != "") as.character(cs$review_status) else "draft",
+        origin = NULL,
         translations = if (length(translations) > 0) translations else NULL,
         createdByDetails = created_by_details,
         reviews = reviews,
@@ -1616,8 +1619,9 @@ import_concept_set_from_json <- function(json_file, language = "en") {
       update_concept_set(concept_set_id, version = version, language = language)
     }
 
-    # Update review status if present
-    review_status <- json_data$reviewStatus
+    # Update review status if present (check metadata first, then root for backward compat)
+    review_status <- json_data$metadata$reviewStatus
+    if (is.null(review_status)) review_status <- json_data$reviewStatus
     if (!is.null(review_status) && review_status != "draft") {
       update_concept_set(concept_set_id, review_status = review_status, language = language)
     }
